@@ -5,7 +5,7 @@
 // the 2nd parameter is an array of 'requires'
 // 'starter.services' is found in services.js
 // 'starter.controllers' is found in controllers.js
-angular.module('starter', ['ionic', 'starter.controllers', 'starter.services'])
+var app = angular.module('starter', ['ionic', 'ngCordova'])
 
 .run(function($ionicPlatform) {
   $ionicPlatform.ready(function() {
@@ -23,63 +23,49 @@ angular.module('starter', ['ionic', 'starter.controllers', 'starter.services'])
   });
 })
 
-.config(function($stateProvider, $urlRouterProvider) {
+app.controller('VideoCtrl', function($scope, $cordovaCapture) {
+  $scope.data = {
+    videoPath: ""
+  };
 
-  // Ionic uses AngularUI Router which uses the concept of states
-  // Learn more here: https://github.com/angular-ui/ui-router
-  // Set up the various states which the app can be in.
-  // Each state's controller can be found in controllers.js
-  $stateProvider
+  $scope.captureVideo = function() {
+    var options = { limit: 3, duration: 15 };
 
-  // setup an abstract state for the tabs directive
-    .state('tab', {
-    url: '/tab',
-    abstract: true,
-    templateUrl: 'templates/tabs.html'
-  })
+    $cordovaCapture.captureVideo(options).then(function(videoData) {
+      // Success! Video data is here
+      $scope.data.videoPath = "file:/" + videoData[0].fullPath;
+    }, function(err) {
+      // An error occurred. Show a message to the user
+      console.log(err);
+    });
+  }
+})
 
-  // Each tab has its own nav history stack:
+app.directive("cordovaVideo", function () {
+  return {
+    restrict: 'AEC',
+    scope: {src: '='},
+link: function(scope, element, attrs) {
+      scope.$watch('src', function(newVal, oldVal) {
+        if (scope.src != "") {
+          // Create a div object
+          var div = document.createElement('div');
+          div.innerHTML = "<video id=\"myCordovaVideo\" controls>"+
+                          "<source src=\"" + scope.src + "\" type=\"video/quicktime\">"+
+                          "</video>";
 
-  .state('tab.dash', {
-    url: '/dash',
-    views: {
-      'tab-dash': {
-        templateUrl: 'templates/tab-dash.html',
-        controller: 'DashCtrl'
-      }
-    }
-  })
+          // Delete previous video if exists
+          var previousDiv = document.getElementById('myCordovaVideo');
+          if (previousDiv)
+            previousDiv.remove();
 
-  .state('tab.chats', {
-      url: '/chats',
-      views: {
-        'tab-chats': {
-          templateUrl: 'templates/tab-chats.html',
-          controller: 'ChatsCtrl'
+          // Append new <video> tag into the DOM
+          element.append(div);
         }
-      }
-    })
-    .state('tab.chat-detail', {
-      url: '/chats/:chatId',
-      views: {
-        'tab-chats': {
-          templateUrl: 'templates/chat-detail.html',
-          controller: 'ChatDetailCtrl'
-        }
-      }
-    })
 
-  .state('tab.account', {
-    url: '/account',
-    views: {
-      'tab-account': {
-        templateUrl: 'templates/tab-account.html',
-        controller: 'AccountCtrl'
-      }
+      });
     }
-  });
-
-  // if none of the above states are matched, use this as the fallback
-  $urlRouterProvider.otherwise('/tab/dash');
-
+  }
 });
+
+
